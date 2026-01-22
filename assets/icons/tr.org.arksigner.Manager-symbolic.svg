@@ -1,0 +1,33 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+
+  <!-- USB outline -->
+  <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- USB body -->
+    <path d="
+      M5.2 4.6
+      c0-1.4 1.1-2.5 2.5-2.5
+      h0.6
+      c1.4 0 2.5 1.1 2.5 2.5
+      v7.2
+      c0 1.4-1.1 2.5-2.5 2.5
+      h-0.6
+      c-1.4 0-2.5-1.1-2.5-2.5
+      V4.6z"></path>
+
+    <!-- Connector (inside viewBox, no clipping) -->
+    <path d="M6.2 1.4h3.6v2.1H6.2z"></path>
+  </g>
+
+  <!-- Pen: filled, clear silhouette -->
+  <!-- Tip positioned between body center and bottom center -->
+  <g transform="translate(8 11.1) rotate(-35)" fill="currentColor">
+    <!-- Tip -->
+    <path d="M0 0 L2.2 0.85 L2.2 -0.85 Z"></path>
+    <!-- Body -->
+    <rect x="2.1" y="-1.05" width="5.2" height="2.1" rx="1.05"></rect>
+    <!-- Band -->
+    <rect x="4.1" y="-1.05" width="0.9" height="2.1" rx="0.4" opacity="0.9"></rect>
+  </g>
+</svg>

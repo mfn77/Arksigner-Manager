@@ -1,0 +1,7 @@
+
+# Secrets
+github token.txt
+*.token
+*.pat
+.env
+.env.*

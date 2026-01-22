@@ -1,0 +1,84 @@
+pkgname=arksigner-manager
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="ArkSigner manager (GTK4/libadwaita GUI + root CLI) with native+container modes"
+arch=('any')
+license=('GPL3')
+url="https://github.com/mfn77/Arksigner-Manager"
+
+depends=(
+  'python'
+  'python-gobject'
+  'gtk4'
+  'libadwaita'
+  'polkit'
+  'systemd'
+  'pcsclite'
+  'ccid'
+  'opensc'
+  'pcsc-tools'
+  'debootstrap'
+  'curl'
+  'util-linux'
+  'nss'
+  'binutils'
+  'tar'
+  'xz'
+  'zstd'
+)
+
+optdepends=(
+  'patchelf: For native mode RPATH fixes'
+)
+
+build() { :; }
+
+package() {
+  cd "$startdir"
+  
+  # Main application tree
+  install -d "$pkgdir/usr/share/arksigner-manager"
+  cp -a gui "$pkgdir/usr/share/arksigner-manager/"
+  cp -a backend "$pkgdir/usr/share/arksigner-manager/"
+
+  # Clean __pycache__
+  find "$pkgdir/usr/share/arksigner-manager" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+
+  # pkexec target wrapper (hardened by polkit exec.path)
+  install -d "$pkgdir/usr/libexec/arksigner-manager"
+  install -m 0755 /dev/stdin "$pkgdir/usr/libexec/arksigner-manager/arksigner-manager-cli" <<'EOF'
+#!/usr/bin/env bash
+exec /usr/bin/python3 /usr/share/arksigner-manager/backend/arksigner_manager.py "$@"
+EOF
+
+  # User-facing commands
+  install -d "$pkgdir/usr/bin"
+  install -m 0755 /dev/stdin "$pkgdir/usr/bin/arksigner-manager" <<'EOF'
+#!/usr/bin/env bash
+exec /usr/bin/python3 /usr/share/arksigner-manager/gui/app.py "$@"
+EOF
+  ln -sf /usr/libexec/arksigner-manager/arksigner-manager-cli "$pkgdir/usr/bin/arksigner-manager-cli"
+
+  # Polkit policy
+  install -d "$pkgdir/usr/share/polkit-1/actions"
+  install -m 0644 assets/tr.org.arksigner.Manager.policy \
+    "$pkgdir/usr/share/polkit-1/actions/tr.org.arksigner.Manager.policy"
+
+  # Desktop entry
+  install -d "$pkgdir/usr/share/applications"
+  install -m 0644 assets/tr.org.arksigner.Manager.desktop \
+    "$pkgdir/usr/share/applications/tr.org.arksigner.Manager.desktop"
+
+  # Icons (optional)
+  if [[ -f assets/icons/tr.org.arksigner.Manager.svg ]]; then
+    install -d "$pkgdir/usr/share/icons/hicolor/scalable/apps"
+    install -m 0644 assets/icons/tr.org.arksigner.Manager.svg \
+      "$pkgdir/usr/share/icons/hicolor/scalable/apps/tr.org.arksigner.Manager.svg"
+  fi
+
+  if [[ -f assets/icons/tr.org.arksigner.Manager-symbolic.svg ]]; then
+    install -d "$pkgdir/usr/share/icons/hicolor/symbolic/apps"
+    install -m 0644 assets/icons/tr.org.arksigner.Manager-symbolic.svg \
+      "$pkgdir/usr/share/icons/hicolor/symbolic/apps/tr.org.arksigner.Manager-symbolic.svg"
+  fi
+}

@@ -1,0 +1,202 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <title>tr.org.arksigner.Manager</title>
+
+  <defs>
+    <!-- BODY -->
+    <linearGradient id="bodyFill" x1="46" y1="28" x2="86" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7F9FC"></stop>
+      <stop offset="1" stop-color="#C7CFDA"></stop>
+    </linearGradient>
+
+    <linearGradient id="innerPanel" x1="48" y1="44" x2="84" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.65"></stop>
+      <stop offset="0.55" stop-color="#E7ECF3" stop-opacity="0.40"></stop>
+      <stop offset="1" stop-color="#8B96A8" stop-opacity="0.28"></stop>
+    </linearGradient>
+
+    <linearGradient id="sideBands" x1="44" y1="0" x2="92" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop>
+      <stop offset="0.10" stop-color="#FFFFFF" stop-opacity="0.12"></stop>
+      <stop offset="0.90" stop-color="#FFFFFF" stop-opacity="0.12"></stop>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.55"></stop>
+    </linearGradient>
+
+    <linearGradient id="bevelHi" x1="44" y1="34" x2="88" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"></stop>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.18"></stop>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="bevelLo" x1="46" y1="32" x2="90" y2="114" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#111827" stop-opacity="0"></stop>
+      <stop offset="0.55" stop-color="#111827" stop-opacity="0.12"></stop>
+      <stop offset="1" stop-color="#111827" stop-opacity="0.28"></stop>
+    </linearGradient>
+
+    <!-- Bottom thickness (USB): metallic + symmetric edge glints -->
+    <linearGradient id="thickH" gradientUnits="objectBoundingBox" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0.00" stop-color="#9EABBD"></stop>
+      <stop offset="0.04" stop-color="#9EABBD"></stop>
+
+      <stop offset="0.07" stop-color="#FFFFFF"></stop>
+      <stop offset="0.12" stop-color="#FFFFFF"></stop>
+
+      <stop offset="0.20" stop-color="#70829B"></stop>
+      <stop offset="0.50" stop-color="#52647D"></stop>
+      <stop offset="0.80" stop-color="#70829B"></stop>
+
+      <stop offset="0.88" stop-color="#FFFFFF"></stop>
+      <stop offset="0.93" stop-color="#FFFFFF"></stop>
+
+      <stop offset="0.96" stop-color="#9EABBD"></stop>
+      <stop offset="1.00" stop-color="#9EABBD"></stop>
+    </linearGradient>
+
+    <linearGradient id="thickV" x1="0" y1="100" x2="0" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.00"></stop>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.14"></stop>
+    </linearGradient>
+
+    <!-- Connector -->
+    <linearGradient id="metal" x1="50" y1="22" x2="78" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EEF2F7"></stop>
+      <stop offset="1" stop-color="#AAB4C2"></stop>
+    </linearGradient>
+    <linearGradient id="metalInset" x1="52" y1="28" x2="76" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4B5563"></stop>
+      <stop offset="1" stop-color="#2B3440"></stop>
+    </linearGradient>
+
+    <!-- Blue module -->
+    <linearGradient id="accent" x1="50" y1="70" x2="90" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4F8DFF"></stop>
+      <stop offset="1" stop-color="#1D4ED8"></stop>
+    </linearGradient>
+    <linearGradient id="accentBevel" x1="52" y1="74" x2="88" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B9D6FF" stop-opacity="0.85"></stop>
+      <stop offset="1" stop-color="#60A5FA" stop-opacity="0"></stop>
+    </linearGradient>
+
+    <!-- Blue module bottom face -->
+    <linearGradient id="accentThickH" gradientUnits="objectBoundingBox" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0.00" stop-color="#2A5BE0"></stop>
+      <stop offset="0.05" stop-color="#2A5BE0"></stop>
+
+      <stop offset="0.09" stop-color="#FFFFFF" stop-opacity="0.95"></stop>
+      <stop offset="0.13" stop-color="#FFFFFF" stop-opacity="0.95"></stop>
+
+      <stop offset="0.22" stop-color="#1E49C4"></stop>
+      <stop offset="0.50" stop-color="#1B3FAF"></stop>
+      <stop offset="0.78" stop-color="#1E49C4"></stop>
+
+      <stop offset="0.87" stop-color="#FFFFFF" stop-opacity="0.95"></stop>
+      <stop offset="0.91" stop-color="#FFFFFF" stop-opacity="0.95"></stop>
+
+      <stop offset="0.95" stop-color="#2A5BE0"></stop>
+      <stop offset="1.00" stop-color="#2A5BE0"></stop>
+    </linearGradient>
+
+    <linearGradient id="accentThickV" x1="0" y1="100" x2="0" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.00"></stop>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.16"></stop>
+    </linearGradient>
+
+    <!-- Pen -->
+    <linearGradient id="penBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"></stop>
+      <stop offset="1" stop-color="#D1D5DB"></stop>
+    </linearGradient>
+
+    <!-- Shapes -->
+    <path id="usbBody" d="M44 46c0-10 8-18 18-18h4c10 0 18 8 18 18v52c0 10-8 18-18 18h-4c-10 0-18-8-18-18V46z"></path>
+
+    <clipPath id="clipUsb">
+      <use href="#usbBody"></use>
+    </clipPath>
+
+    <clipPath id="clipThicknessBand">
+      <rect x="0" y="100" width="128" height="28"></rect>
+    </clipPath>
+
+    <path id="module" d="M50 78c0-6 5-11 11-11h18c6 0 11 5 11 11v17c0 6-5 11-11 11H61c-6 0-11-5-11-11V78z"></path>
+  </defs>
+
+  <!-- USB bottom thickness -->
+  <g clip-path="url(#clipThicknessBand)">
+    <use href="#usbBody" transform="translate(64 0) scale(1.06 1) translate(-64 0) translate(0 12)" fill="url(#thickH)"></use>
+    <use href="#usbBody" transform="translate(64 0) scale(1.06 1) translate(-64 0) translate(0 12)" fill="url(#thickV)"></use>
+  </g>
+
+  <!-- USB body -->
+  <use href="#usbBody" fill="url(#bodyFill)"></use>
+
+  <!-- Internal 3D contrast bands -->
+  <g clip-path="url(#clipUsb)">
+    <path d="M48 52c0-8 6-14 14-14h4c8 0 14 6 14 14v44c0 8-6 14-14 14h-4c-8 0-14-6-14-14V52z" fill="url(#innerPanel)"></path>
+    <rect x="44" y="46" width="40" height="70" fill="url(#sideBands)" opacity="0.65"></rect>
+  </g>
+
+  <!-- Bevel strokes -->
+  <use href="#usbBody" fill="none" stroke="url(#bevelHi)" stroke-width="3.4"></use>
+  <use href="#usbBody" fill="none" stroke="url(#bevelLo)" stroke-width="3.4"></use>
+
+  <!-- Inner depth line -->
+  <path d="M48 52c0-8 6-14 14-14h4c8 0 14 6 14 14v44c0 8-6 14-14 14h-4c-8 0-14-6-14-14V52z" fill="none" stroke="#111827" stroke-opacity="0.12" stroke-width="2"></path>
+
+  <!-- Connector -->
+  <path d="M52 24c0-4 3-7 7-7h10c4 0 7 3 7 7v18H52V24z" fill="url(#metal)"></path>
+  <rect x="55" y="28" width="26" height="12" rx="3.5" fill="url(#metalInset)"></rect>
+
+  <!-- Contacts -->
+  <rect x="59" y="30.5" width="3.2" height="3.2" rx="1" fill="#E9EEF7" opacity="0.95"></rect>
+  <rect x="66.4" y="30.5" width="3.2" height="3.2" rx="1" fill="#E9EEF7" opacity="0.95"></rect>
+  <rect x="73.8" y="30.5" width="3.2" height="3.2" rx="1" fill="#E9EEF7" opacity="0.95"></rect>
+
+  <!-- BLUE MODULE (bottom face + main face + signature + pen) moved up together -->
+  <g transform="translate(0 -3)">
+    <!-- bottom face behind -->
+    <use href="#module" transform="translate(0 6)" fill="url(#accentThickH)"></use>
+    <use href="#module" transform="translate(0 6)" fill="url(#accentThickV)"></use>
+
+    <!-- main face -->
+    <use href="#module" fill="url(#accent)"></use>
+    <path d="M52 80c1-6 5-9 10-9h16c5 0 9 3 10 9" fill="none" stroke="url(#accentBevel)" stroke-width="3" stroke-linecap="round" opacity="0.95"></path>
+
+    <!-- Signature -->
+    <path d="M57.5 94
+             C61.5 86 65 99 69 92
+             C72 87 73 97 76 92" fill="none" stroke="#EEF5FF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+
+    <!-- Pen -->
+    <g transform="translate(76 92) rotate(-35)">
+      <!-- tip: base matches barrel height exactly and overlaps slightly into barrel -->
+      <path d="
+        M1.78 -1.12
+        L7.85 -3.20
+        L7.85  3.20
+        L1.78  1.12
+        Q0 0 1.78 -1.12
+        Z" fill="#9CA3AF" opacity="0.98"></path>
+
+      <!-- micro-overlap strip to eliminate any raster seam -->
+      <rect x="7.55" y="-3.22" width="0.80" height="6.44" rx="0.25" fill="#9CA3AF" opacity="0.98"></rect>
+
+      <!-- body -->
+      <rect x="7" y="-3.2" width="26" height="6.4" rx="2.7" fill="url(#penBody)"></rect>
+
+      <!-- band -->
+      <rect x="19.2" y="-2.6" width="5" height="5.2" rx="1.5" fill="#9CA3AF" opacity="0.95"></rect>
+
+      <!-- highlight -->
+      <path d="M9 -1.3h13" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="1.2" stroke-linecap="round"></path>
+
+      <!-- CLIP: rear edge aligned with pen rear edge (x=33) -->
+      <!-- pad: 28.6 + 4.4 = 33 -->
+      <rect x="28.6" y="-6.35" width="4.4" height="1.8" rx="0.9" fill="#9CA3AF" opacity="0.95"></rect>
+      <!-- strip: 20.8 + 12.2 = 33 -->
+      <rect x="20.8" y="-6.75" width="12.2" height="2.0" rx="1.0" fill="#9CA3AF" opacity="0.95"></rect>
+      <!-- highlight aligned with strip -->
+      <rect x="21.4" y="-6.60" width="10.9" height="0.70" rx="0.35" fill="#FFFFFF" opacity="0.28"></rect>
+    </g>
+  </g>
+</svg>
