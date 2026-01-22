@@ -5,3 +5,7 @@ github token.txt
 *.pat
 .env
 .env.*
+
+# Local git backups (must never be committed)
+.git_broken_*
+git.broken*
