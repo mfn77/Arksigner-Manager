@@ -5,7 +5,6 @@ Comment=Manage ArkSigner (native or container) and PKCS#11 integration
 Exec=arksigner-manager
 Icon=tr.org.arksigner.Manager
 Terminal=false
-Categories=System;Settings;
-StartupNotify=true
+Categories=System;
 Keywords=arksigner;e-signature;pkcs11;smartcard;
-
+StartupNotify=true

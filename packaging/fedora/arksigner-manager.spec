@@ -87,7 +87,7 @@ install -m 0644 assets/tr.org.arksigner.Manager.policy %{buildroot}%{_datadir}/p
 install -d %{buildroot}%{_datadir}/applications
 install -m 0644 assets/tr.org.arksigner.Manager.desktop %{buildroot}%{_datadir}/applications/tr.org.arksigner.Manager.desktop
 
-# Icons (optional - only install if present)
+# Icons
 if [ -f assets/icons/tr.org.arksigner.Manager.svg ]; then
   install -d %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
   install -m 0644 assets/icons/tr.org.arksigner.Manager.svg \
@@ -108,9 +108,8 @@ fi
 %{_bindir}/arksigner-manager-cli
 %{_datadir}/polkit-1/actions/tr.org.arksigner.Manager.policy
 %{_datadir}/applications/tr.org.arksigner.Manager.desktop
-# Icons are optional - comment out if not present
-# %{_datadir}/icons/hicolor/scalable/apps/tr.org.arksigner.Manager.svg
-# %{_datadir}/icons/hicolor/symbolic/apps/tr.org.arksigner.Manager-symbolic.svg
+%{_datadir}/icons/hicolor/scalable/apps/tr.org.arksigner.Manager.svg
+%{_datadir}/icons/hicolor/symbolic/apps/tr.org.arksigner.Manager-symbolic.svg
 
 %post
 # Update icon cache if installed
@@ -127,11 +126,11 @@ if [ $1 -eq 0 ]; then
 fi
 
 %changelog
-* Thu Jan 23 2026 MFN <you@example.com> - 1.0.0-1
+* Wed Jan 22 2026 MFN <you@example.com> - 1.0.0-1
 - Version 1.0.0 release
 - Complete GTK4/Adwaita UI implementation
 - Container and native mode support
-- Fixed file structure checks
+- Fixed icon packaging
 - Improved packaging
 
 * Mon Jan 20 2026 You <you@example.com> - 0.3.0-6

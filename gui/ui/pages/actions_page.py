@@ -26,46 +26,40 @@ class ActionsPage:
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         root.set_vexpand(True)
         root.set_hexpand(False)
-        root.set_size_request(350, -1)  # Smaller min width
+        root.set_size_request(240, -1)  # Increased minimum
+        root.set_halign(Gtk.Align.FILL)  # Fill available space up to max
 
-        # GNOME Settings style: lighter sidebar background
-        root.add_css_class("sidebar")
-        root.add_css_class("view")
-        root.add_css_class("background")  # Ensures light background extends everywhere
-
-        # No title inside - it's in the headerbar now
-        # title = Gtk.Label(label="Actions", xalign=0)
-        # title.add_css_class("title-2")
-        # ...
-        # root.append(title)
+        # No extra classes needed - parent handles dark background
 
         self.lb = Gtk.ListBox()
         self.lb.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.lb.add_css_class("navigation-sidebar")
-        self.lb.set_margin_top(0)  # No extra margin since title is in headerbar
+        self.lb.set_margin_top(0)
         self.lb.connect("row-activated", self._on_row_activated)
         root.append(self.lb)
 
-        def add(action: str, title: str, subtitle: str, destructive=False):
+        def add(action: str, title: str, subtitle: str, icon_name: str = None, destructive=False):
             row = Gtk.ListBoxRow()
             row.set_activatable(True)
             row.set_selectable(True)
 
-            h = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            h.set_margin_top(10)
-            h.set_margin_bottom(10)
+            # Horizontal box with icon + label
+            h = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            h.set_margin_top(14)    # Match AdwActionRow height
+            h.set_margin_bottom(14)
             h.set_margin_start(18)
             h.set_margin_end(18)
 
-            t = Gtk.Label(label=title, xalign=0)
-            t.add_css_class("title-4")
-            h.append(t)
+            # Icon (if provided)
+            if icon_name:
+                icon = Gtk.Image.new_from_icon_name(icon_name)
+                icon.set_pixel_size(16)  # Standard icon size
+                h.append(icon)
 
-            s = Gtk.Label(label=subtitle, xalign=0)
-            s.add_css_class("dim-label")
-            s.add_css_class("caption")
-            s.set_wrap(True)
-            h.append(s)
+            # Label
+            t = Gtk.Label(label=title, xalign=0)
+            t.set_hexpand(True)
+            h.append(t)
 
             row.set_child(h)
 
@@ -79,11 +73,11 @@ class ActionsPage:
             self._rows[action] = row
             self.lb.append(row)
 
-        add("install", "Install", "Configure options then install")
-        add("upgrade", "Upgrade", "Upgrade using the selected mode and package")
-        add("repair", "Repair", "Fix mounts/stale units and restart services")
-        add("uninstall", "Uninstall", "Remove services and mounts")
-        add("purge", "Purge", "Remove everything (including container rootfs)", destructive=True)
+        add("install", "Install", "Configure options then install", "document-new-symbolic")
+        add("upgrade", "Upgrade", "Upgrade using the selected mode and package", "software-update-available-symbolic")
+        add("repair", "Repair", "Fix mounts/stale units and restart services", "emblem-system-symbolic")
+        add("uninstall", "Uninstall", "Remove services and mounts", "edit-delete-symbolic")
+        add("purge", "Purge", "Remove everything (including container rootfs)", "user-trash-symbolic", destructive=True)
 
         hint_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         hint_box.set_margin_top(12)

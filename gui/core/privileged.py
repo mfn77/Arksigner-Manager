@@ -55,6 +55,9 @@ def build_pkexec_cmd(
     firefox_add: bool,
     recreate: bool,
     native_rpath: bool,
+    force_terminate: bool = False,
+    recreate_mounts: bool = False,
+    clear_cache: bool = True,
 ) -> list[str]:
     """
     Build pkexec command for running backend with root privileges.
@@ -106,6 +109,12 @@ def build_pkexec_cmd(
         cmd.append("--firefox-add")
     if native_rpath:
         cmd.append("--native-rpath")
+    if force_terminate:
+        cmd.append("--force-terminate")
+    if recreate_mounts:
+        cmd.append("--recreate-mounts")
+    if clear_cache:
+        cmd.append("--clear-cache")
 
     return cmd
 

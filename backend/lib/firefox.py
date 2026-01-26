@@ -23,13 +23,40 @@ def firefox_add(user: str, home: str) -> str:
         return f"[{ts()}] Firefox add: no profiles found under {ffdir}\n"
 
     out = [f"[{ts()}] Adding PKCS#11 module to Firefox profiles (best-effort)\n"]
+    
+    # Set LD_LIBRARY_PATH to include ArkSigner libs
+    lib_dirs = [
+        "/opt/arksigner/libs",
+        "/opt/arksigner/drivers/akis/x64",
+    ]
+    ld_library_path = ":".join(lib_dirs)
+    
     for prof in profiles:
         if not prof.is_dir():
             continue
+        
+        # First, try to delete existing module (ignore errors)
+        del_cmd = [
+            "sudo",
+            "-u",
+            user,
+            "env",
+            f"LD_LIBRARY_PATH={ld_library_path}",
+            "modutil",
+            "-dbdir",
+            f"sql:{prof}",
+            "-delete",
+            "ArkSigner",
+        ]
+        subprocess.run(del_cmd, text=True, capture_output=True, input="\n\n")
+        
+        # Now add the module with LD_LIBRARY_PATH set
         cmd = [
             "sudo",
             "-u",
             user,
+            "env",
+            f"LD_LIBRARY_PATH={ld_library_path}",
             "modutil",
             "-dbdir",
             f"sql:{prof}",
@@ -37,13 +64,58 @@ def firefox_add(user: str, home: str) -> str:
             "ArkSigner",
             "-libfile",
             str(PKCS11_MODULE),
+            "-force",
         ]
-        p = subprocess.run(cmd, text=True, capture_output=True)
-        out.append(f"Profile: {prof}\nrc={p.returncode}\n")
-        if p.stdout.strip():
-            out.append(p.stdout.strip() + "\n")
+        
+        # Use yes command to pipe enters to modutil
+        full_cmd = f"yes '' | {' '.join(cmd)}"
+        p = subprocess.run(
+            full_cmd,
+            shell=True,
+            text=True,
+            capture_output=True,
+            timeout=10
+        )
+        
+        out.append(f"Profile: {prof}\n")
+        
+        # Success if rc is 0
+        if p.returncode == 0:
+            out.append("✓ Module added successfully\n")
+        else:
+            out.append(f"✗ Failed (rc={p.returncode})\n")
+            
+        # Only show actual errors, not prompts
         if p.stderr.strip():
-            out.append(p.stderr.strip() + "\n")
+            stderr_lines = [
+                line for line in p.stderr.splitlines()
+                if "ERROR:" in line and line.strip()
+            ]
+            if stderr_lines:
+                out.append("\n".join(stderr_lines) + "\n")
+        
         out.append("\n")
     return "".join(out)
 
+
+def check_pkcs11_dependencies() -> str:
+    """Check if PKCS11 module has all required dependencies"""
+    if not PKCS11_MODULE.exists():
+        return "Module not found"
+    
+    # Try to load the library to see what's missing
+    result = subprocess.run(
+        ["ldd", str(PKCS11_MODULE)],
+        text=True,
+        capture_output=True
+    )
+    
+    missing = []
+    for line in result.stdout.splitlines():
+        if "not found" in line:
+            lib = line.split()[0]
+            missing.append(lib)
+    
+    if missing:
+        return f"Missing libraries: {', '.join(missing)}\nInstall ArkSigner dependencies."
+    return "All dependencies OK"

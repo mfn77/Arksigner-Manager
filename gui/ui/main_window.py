@@ -13,6 +13,9 @@ from gui.ui.pages.install_setup_page import InstallSetupPage
 from gui.ui.pages.upgrade_page import UpgradePage
 from gui.ui.pages.progress_page import ProgressPage
 from gui.ui.pages.post_install_page import PostInstallPage
+from gui.ui.pages.uninstall_page import UninstallPage
+from gui.ui.pages.purge_page import PurgePage
+from gui.ui.pages.repair_page import RepairPage
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -21,12 +24,17 @@ class MainWindow(Adw.ApplicationWindow):
     PAGE_UPGRADE = "upgrade"
     PAGE_PROGRESS = "progress"
     PAGE_POST = "post"
+    PAGE_UNINSTALL = "uninstall"
+    PAGE_PURGE = "purge"
+    PAGE_REPAIR = "repair"
     PAGE_CONFIRM_PREFIX = "confirm-"
 
     def __init__(self, app: Adw.Application):
         super().__init__(application=app)
         self.set_title("ArkSigner Manager")
-        self.set_default_size(900, 600)  # Smaller default, more resizable
+        self.set_default_size(1000, 650)
+        # Minimum window size to prevent content clipping
+        self.set_size_request(800, 780)  # Reduced width for narrower sidebar
 
         self._busy = False
         self._cancel_token = 0
@@ -39,7 +47,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.toast_overlay = Adw.ToastOverlay()
         self.set_content(self.toast_overlay)
 
-        # Toolbar view (no headerbar yet)
+        # Toolbar view
         tv = Adw.ToolbarView()
         self.toast_overlay.set_child(tv)
 
@@ -50,8 +58,6 @@ class MainWindow(Adw.ApplicationWindow):
         self.split.set_collapsed(True)
         self.split.set_enable_hide_gesture(True)
         self.split.set_enable_show_gesture(True)
-        self.split.set_max_sidebar_width(420)
-        self.split.set_min_sidebar_width(350)  # Match actions min
         self.split.connect("notify::show-sidebar", self._on_sidebar_changed)
 
         # Diagnostics sidebar
@@ -63,20 +69,32 @@ class MainWindow(Adw.ApplicationWindow):
         )
         self.split.set_sidebar(self.diag_sidebar)
 
-        # Main content with split headerbars
+        # Main content with Paned for responsive layout
         content_root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         content_root.set_hexpand(True)
         content_root.set_vexpand(True)
 
-        # Split headerbar row
-        hb_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        hb_row.set_hexpand(True)
+        # Paned widget for resizable split
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        self.paned.set_position(280)  # Default width (~GNOME Settings)
+        self.paned.set_wide_handle(False)
+        self.paned.set_shrink_start_child(False)
+        self.paned.set_shrink_end_child(False)
+        self.paned.set_resize_start_child(True)   # LEFT PANEL RESPONSIVE!
+        self.paned.set_resize_end_child(True)
+        
+        # Connect to enforce max width
+        self.paned.connect("notify::position", self._on_paned_position_changed)
 
-        # Left headerbar (flexible width, matches actions)
-        hb_left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        hb_left_box.set_size_request(350, -1)  # Match actions min width
-        hb_left_box.add_css_class("view")  # Light background
+        # LEFT PANEL (Actions + HeaderBar)
+        left_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        left_panel.set_size_request(240, -1)  # Increased minimum
+        left_panel.set_hexpand(False)  # Don't expand beyond natural size
+        left_panel.set_halign(Gtk.Align.START)  # Stay on left
+        # Dark sidebar like GNOME Settings
+        left_panel.add_css_class("navigation-sidebar")
 
+        # Left headerbar
         hb_left = Adw.HeaderBar()
         hb_left.add_css_class("flat")
         hb_left.set_show_end_title_buttons(False)
@@ -90,62 +108,48 @@ class MainWindow(Adw.ApplicationWindow):
         hb_left.pack_start(self.btn_diag)
 
         title_left = Gtk.Label(label="Menu")
-        title_left.add_css_class("title-4")
+        title_left.add_css_class("header-title")  # Custom class for bold + normal size
         hb_left.set_title_widget(title_left)
-
-        hb_left_box.append(hb_left)
-        hb_row.append(hb_left_box)
-
-        # Right headerbar (expands)
-        hb_right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        hb_right_box.set_hexpand(True)
-
-        hb_right = Adw.HeaderBar()
-        # Window controls only on right
-
-        # Title (centered)
-        self.title_right = Gtk.Label(label="")
-        self.title_right.add_css_class("title-4")
-        hb_right.set_title_widget(self.title_right)
-
-        # Right side buttons
+        
+        # Hamburger menu on LEFT headerbar (GNOME Settings style)
         menu = Gio.Menu()
         menu.append("Status", "win.status")
         menu.append("About", "win.about")
         menu.append("Quit", "win.quit")
         menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic")
         menu_btn.set_menu_model(menu)
-        hb_right.pack_end(menu_btn)
+        hb_left.pack_end(menu_btn)  # Right side of left headerbar
 
-        self.spinner = Gtk.Spinner()
-        self.spinner.set_visible(False)
-        hb_right.pack_end(self.spinner)
+        left_panel.append(hb_left)
 
-        hb_right_box.append(hb_right)
-        hb_row.append(hb_right_box)
-
-        content_root.append(hb_row)
-
-        # Content area (below headerbars)
-        content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        content_box.set_hexpand(True)
-        content_box.set_vexpand(True)
-
-        # Left: actions (350px min)
+        # Actions page
         self.page_actions = ActionsPage(on_action=self.on_action_clicked)
-        content_box.append(self.page_actions.widget)
+        left_panel.append(self.page_actions.widget)
 
-        # Right: stack with pages
-        self.right_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.right_panel.set_hexpand(True)
-        self.right_panel.set_vexpand(True)
-        self.right_panel.set_size_request(400, -1)  # Smaller min width
+        self.paned.set_start_child(left_panel)
 
+        # RIGHT PANEL (Content + HeaderBar)
+        right_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        right_panel.set_hexpand(True)
+        right_panel.set_size_request(500, -1)  # Minimum width for content
+
+        # Right headerbar
+        hb_right = Adw.HeaderBar()
+        hb_right.add_css_class("flat")  # Same background as panel
+        
+        # Title (centered)
+        self.title_right = Gtk.Label(label="")
+        self.title_right.add_css_class("header-title")  # Custom class
+        hb_right.set_title_widget(self.title_right)
+
+        right_panel.append(hb_right)
+
+        # Stack with pages
         self.stack = Gtk.Stack()
         self.stack.set_hexpand(True)
         self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        self.right_panel.append(self.stack)
+        right_panel.append(self.stack)
 
         self.page_install_setup = InstallSetupPage(on_confirm=self.on_install_confirm)
         self.page_upgrade = UpgradePage(on_confirm=self.on_upgrade_confirm)
@@ -154,18 +158,33 @@ class MainWindow(Adw.ApplicationWindow):
             on_done=self.on_post_install_done,
             on_firefox_add=self.on_post_install_firefox_add,
         )
+        self.page_uninstall = UninstallPage(
+            on_confirm=self.on_uninstall_confirm,
+            on_cancel=lambda: self.stack.set_visible_child_name(self.PAGE_EMPTY)
+        )
+        self.page_purge = PurgePage(
+            on_confirm=self.on_purge_confirm,
+            on_cancel=lambda: self.stack.set_visible_child_name(self.PAGE_EMPTY)
+        )
+        self.page_repair = RepairPage(
+            on_confirm=self.on_repair_confirm,
+            on_cancel=lambda: self.stack.set_visible_child_name(self.PAGE_EMPTY)
+        )
 
         self.stack.add_named(self._empty_widget(), self.PAGE_EMPTY)
         self.stack.add_named(self.page_install_setup.widget, self.PAGE_INSTALL)
         self.stack.add_named(self.page_upgrade.widget, self.PAGE_UPGRADE)
         self.stack.add_named(self.page_progress.widget, self.PAGE_PROGRESS)
         self.stack.add_named(self.page_post_install.widget, self.PAGE_POST)
+        self.stack.add_named(self.page_uninstall.widget, self.PAGE_UNINSTALL)
+        self.stack.add_named(self.page_purge.widget, self.PAGE_PURGE)
+        self.stack.add_named(self.page_repair.widget, self.PAGE_REPAIR)
         self.stack.set_visible_child_name(self.PAGE_EMPTY)
         self.stack.connect("notify::visible-child-name", self._on_page_changed)
 
-        content_box.append(self.right_panel)
+        self.paned.set_end_child(right_panel)
 
-        content_root.append(content_box)
+        content_root.append(self.paned)
 
         self.split.set_content(content_root)
         tv.set_content(self.split)
@@ -185,21 +204,53 @@ class MainWindow(Adw.ApplicationWindow):
         quit_action.connect("activate", lambda *_: app.quit())
         self.add_action(quit_action)
 
-        # CSS: Match headerbar backgrounds to their content
+        # CSS
         css = Gtk.CssProvider()
         css.load_from_data(b"""
-            /* Left headerbar: light grey like actions */
-            .view headerbar {
-                background-color: @view_bg_color;
-            }
-            /* Right headerbar: dark like main window */
-            headerbar {
-                background-color: @window_bg_color;
-            }
-            /* Remove extra borders */
-            headerbar {
+            /* COMPLETELY hide paned separator */
+            paned > separator {
+                background: transparent;
+                background-image: none;
+                background-color: transparent;
                 border: none;
                 box-shadow: none;
+                min-width: 0;
+                min-height: 0;
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* Also hide the handle */
+            paned > separator handle {
+                background: transparent;
+                border: none;
+                min-width: 0;
+                min-height: 0;
+            }
+            
+            /* Left sidebar - dark in dark mode, light gray in light mode */
+            .navigation-sidebar {
+                background-color: @headerbar_bg_color;
+                min-width: 240px;
+                max-width: 340px;
+            }
+            
+            /* Light mode override - make sidebar light gray like GNOME Settings */
+            @media (prefers-color-scheme: light) {
+                .navigation-sidebar {
+                    background-color: @sidebar_bg_color;
+                    min-width: 240px;
+                    max-width: 340px;
+                }
+            }
+            
+            /* Right panel - no special headerbar styling */
+            /* Let it use default window background */
+            
+            /* Headerbar titles - bold but normal size */
+            .header-title {
+                font-weight: bold;
+                font-size: 1em;  /* Normal body size */
             }
         """)
         Gtk.StyleContext.add_provider_for_display(
@@ -210,6 +261,17 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._refresh_diag()
 
+    def _on_paned_position_changed(self, paned, param):
+        """Enforce max width for left panel like GNOME Settings"""
+        MAX_LEFT_WIDTH = 340  # GNOME Settings actual max
+        MIN_LEFT_WIDTH = 240  # Increased for better visibility
+        current = paned.get_position()
+        
+        if current > MAX_LEFT_WIDTH:
+            paned.set_position(MAX_LEFT_WIDTH)
+        elif current < MIN_LEFT_WIDTH:
+            paned.set_position(MIN_LEFT_WIDTH)
+
     def _on_diag_toggled(self, button):
         is_active = button.get_active()
         self.split.set_show_sidebar(is_active)
@@ -218,113 +280,98 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_sidebar_changed(self, split, _param):
         is_shown = split.get_show_sidebar()
-        self.btn_diag.handler_block_by_func(self._on_diag_toggled)
-        self.btn_diag.set_active(is_shown)
-        self.btn_diag.handler_unblock_by_func(self._on_diag_toggled)
-
-    def _on_page_changed(self, stack, _param):
-        page_name = stack.get_visible_child_name()
-        titles = {
-            self.PAGE_EMPTY: "",
-            self.PAGE_INSTALL: "Install",
-            self.PAGE_UPGRADE: "Upgrade",
-            self.PAGE_PROGRESS: "Working",
-            self.PAGE_POST: "Completed",
-        }
-        # Check for confirm pages
-        if page_name and page_name.startswith(self.PAGE_CONFIRM_PREFIX):
-            action = page_name[len(self.PAGE_CONFIRM_PREFIX):]
-            self.title_right.set_text(action.capitalize())
-        else:
-            self.title_right.set_text(titles.get(page_name, ""))
+        if is_shown != self.btn_diag.get_active():
+            self.btn_diag.set_active(is_shown)
 
     def _empty_widget(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        box.set_margin_top(18)
-        box.set_margin_bottom(18)
-        box.set_margin_start(18)
-        box.set_margin_end(18)
+        box.set_hexpand(True)
+        box.set_vexpand(True)
         box.set_valign(Gtk.Align.CENTER)
         box.set_halign(Gtk.Align.CENTER)
 
-        # No title here - it's in the headerbar
-        s = Gtk.Label(
-            label="Select an action on the left to begin.",
-            xalign=0.5,
-        )
-        s.add_css_class("dim-label")
-        s.set_wrap(True)
-        box.append(s)
+        label = Gtk.Label(label="Select an action from the menu")
+        label.add_css_class("title-2")
+        label.add_css_class("dim-label")
+        box.append(label)
+
         return box
 
+    def _on_page_changed(self, stack, _param):
+        page_name = stack.get_visible_child_name()
+        title_map = {
+            self.PAGE_EMPTY: "",
+            self.PAGE_INSTALL: "Install",
+            self.PAGE_UPGRADE: "Upgrade",
+            self.PAGE_PROGRESS: "Progress",
+            self.PAGE_POST: "Completed",
+            self.PAGE_UNINSTALL: "Uninstall",
+            self.PAGE_PURGE: "Purge",
+            self.PAGE_REPAIR: "Repair",
+        }
+        if page_name and page_name.startswith(self.PAGE_CONFIRM_PREFIX):
+            action = page_name[len(self.PAGE_CONFIRM_PREFIX):]
+            self.title_right.set_text(f"Confirm {action.capitalize()}")
+        else:
+            self.title_right.set_text(title_map.get(page_name, ""))
+
     def toast(self, msg: str):
-        self.toast_overlay.add_toast(Adw.Toast.new(msg))
+        t = Adw.Toast(title=msg)
+        t.set_timeout(3)
+        self.toast_overlay.add_toast(t)
 
     def set_busy(self, busy: bool):
         self._busy = bool(busy)
-        self.spinner.set_visible(self._busy)
-        if self._busy:
-            self.spinner.start()
-        else:
-            self.spinner.stop()
-
         self.page_actions.set_busy(self._busy)
-        # Status is now in menu, no button to disable
+        self.page_install_setup.set_busy(self._busy)
+        self.page_upgrade.set_busy(self._busy)
+        self.page_progress.set_busy(self._busy)
+        self.page_post_install.set_busy(self._busy)
+        self.page_uninstall.set_busy(self._busy)
+        self.page_purge.set_busy(self._busy)
+        self.page_repair.set_busy(self._busy)
 
-        try:
-            self.page_install_setup.set_busy(self._busy)
-        except Exception:
+        if self._busy:
+            # Spinner removed - using progress page instead
             pass
-        try:
-            self.page_upgrade.set_busy(self._busy)
-        except Exception:
+        else:
+            # Not busy
             pass
-        try:
-            self.page_progress.set_busy(self._busy)
-        except Exception:
-            pass
-        try:
-            self.page_post_install.set_busy(self._busy)
-        except Exception:
-            pass
-
-    def _refresh_diag(self):
-        self.diag_sidebar.refresh(self.last_output)
 
     def append_diag(self, line: str):
-        if not line:
-            return
         self.last_output += line + "\n"
         if self.split.get_show_sidebar():
             self._refresh_diag()
 
+    def _refresh_diag(self):
+        self.diag_sidebar.refresh(self.last_output)
+
     def copy_diagnostics(self):
-        display = self.get_display()
-        clipboard = display.get_clipboard()
-        clipboard.set(self.last_output or "")
-        self.toast("Copied")
+        clipboard = self.get_clipboard()
+        clipboard.set(self.last_output)
+        self.toast("Copied to clipboard")
 
     def save_to_file(self):
         self.page_actions.save_text_to_file(self.last_output)
-        self.toast("Saved")
+        self.toast("Saved to file")
 
     def on_action_clicked(self, action: str):
         gui_log(f"Action clicked: {action}")
 
-        if self._busy:
-            self.toast("Busy - please wait for current operation to finish")
-            return
-
         if action == "install":
             self.stack.set_visible_child_name(self.PAGE_INSTALL)
-            return
-
-        if action == "upgrade":
-            # Detect current mode and show upgrade page
+        elif action == "upgrade":
             self._detect_mode_and_show_upgrade()
-            return
-
-        self._show_confirm_panel(action)
+        elif action == "repair":
+            self.page_repair.detect_mode()
+            self.stack.set_visible_child_name(self.PAGE_REPAIR)
+        elif action == "uninstall":
+            self.page_uninstall.detect_mode()
+            self.stack.set_visible_child_name(self.PAGE_UNINSTALL)
+        elif action == "purge":
+            self.page_purge.detect_mode()
+            self.page_purge.reset()
+            self.stack.set_visible_child_name(self.PAGE_PURGE)
 
     def run_status(self):
         if self._busy:
@@ -347,7 +394,7 @@ class MainWindow(Adw.ApplicationWindow):
             copyright="© 2026 MFN",
             license_type=Gtk.License.GPL_3_0,
         )
-        about.add_link("Legal", "https://github.com/mfn77/Arksigner-Manager?tab=GPL-3.0-1-ov-file")
+        about.add_link("GitHub", "https://github.com/mfn77/Arksigner-Manager")
         about.present()
 
     def _confirm_widget(self, action: str) -> Gtk.Widget:
@@ -356,8 +403,6 @@ class MainWindow(Adw.ApplicationWindow):
         box.set_margin_bottom(18)
         box.set_margin_start(18)
         box.set_margin_end(18)
-
-        # No title here - it's in the headerbar now
 
         msg = {
             "repair": "Attempt to fix mounts/services and restart components.",
@@ -409,7 +454,6 @@ class MainWindow(Adw.ApplicationWindow):
         """Detect current installation mode by checking systemd units"""
         import subprocess
 
-        # Check which service is active
         try:
             p = subprocess.run(
                 ["systemctl", "is-active", "arksigner-nspawn.service"],
@@ -433,7 +477,6 @@ class MainWindow(Adw.ApplicationWindow):
 
     def on_upgrade_confirm(self, cfg):
         if cfg is None:
-            # Cancel clicked
             self.stack.set_visible_child_name(self.PAGE_EMPTY)
             return
 
@@ -471,6 +514,21 @@ class MainWindow(Adw.ApplicationWindow):
         self.page_progress.reset("Adding to Firefox…")
         self.run_action("status", cfg=cfg, show_progress=True, auto_open_diag=False)
 
+    def on_uninstall_confirm(self, cfg):
+        self.stack.set_visible_child_name(self.PAGE_PROGRESS)
+        self.page_progress.reset("Uninstalling…")
+        self.run_action("uninstall", cfg=cfg, show_progress=True, auto_open_diag=False)
+
+    def on_purge_confirm(self, cfg):
+        self.stack.set_visible_child_name(self.PAGE_PROGRESS)
+        self.page_progress.reset("Purging…")
+        self.run_action("purge", cfg=cfg, show_progress=True, auto_open_diag=False)
+
+    def on_repair_confirm(self, cfg):
+        self.stack.set_visible_child_name(self.PAGE_PROGRESS)
+        self.page_progress.reset("Repairing…")
+        self.run_action("repair", cfg=cfg, show_progress=True, auto_open_diag=False)
+
     def run_action(
         self,
         action: str,
@@ -492,6 +550,11 @@ class MainWindow(Adw.ApplicationWindow):
         recreate = bool(cfg.get("recreate", False))
         native_rpath = bool(cfg.get("native_rpath", False))
         firefox_add = bool(cfg.get("firefox_add", False))
+        
+        # Repair-specific options
+        force_terminate = bool(cfg.get("force_terminate", False))
+        recreate_mounts = bool(cfg.get("recreate_mounts", False))
+        clear_cache = bool(cfg.get("clear_cache", True))
 
         cmd = build_pkexec_cmd(
             action=action,
@@ -502,6 +565,9 @@ class MainWindow(Adw.ApplicationWindow):
             firefox_add=firefox_add,
             recreate=recreate,
             native_rpath=native_rpath,
+            force_terminate=force_terminate,
+            recreate_mounts=recreate_mounts,
+            clear_cache=clear_cache,
         )
 
         self.set_busy(True)

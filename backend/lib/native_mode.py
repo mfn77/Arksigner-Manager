@@ -144,19 +144,48 @@ def enable_start_native():
 
 
 def uninstall_native(purge: bool):
+    """Uninstall native installation with optional purge."""
+    progress(10, "Stopping service")
     run(["systemctl", "stop", SERVICE_NATIVE], check=False)
+    
+    progress(30, "Disabling service")
     run(["systemctl", "disable", SERVICE_NATIVE], check=False)
     SERVICE_NATIVE_PATH.unlink(missing_ok=True)
+    
+    progress(50, "Reloading systemd")
     run(["systemctl", "daemon-reload"], check=False)
     run(["systemctl", "reset-failed", SERVICE_NATIVE], check=False)
 
     if purge:
+        progress(75, "Purging /opt/arksigner")
         shutil.rmtree(OPT_DIR, ignore_errors=True)
+    
+    progress(100, "Completed")
 
 
-def repair_native():
+def repair_native(recreate_mounts: bool = False, clear_cache: bool = True):
+    """
+    Repair native installation with optional advanced fixes.
+    
+    Args:
+        recreate_mounts: Not applicable for native mode (kept for API consistency)
+        clear_cache: Run daemon-reload and reset-failed
+    """
+    progress(10, "Starting repair")
+    
+    progress(30, "Ensuring pcscd socket")
     ensure_pcscd_socket()
-    run(["systemctl", "daemon-reload"], check=False)
-    run(["systemctl", "reset-failed", SERVICE_NATIVE], check=False)
+    
+    if clear_cache:
+        progress(50, "Clearing systemd cache")
+        run(["systemctl", "daemon-reload"], check=False)
+        run(["systemctl", "reset-failed", SERVICE_NATIVE], check=False)
+    
+    progress(70, "Stopping service")
+    run(["systemctl", "stop", SERVICE_NATIVE], check=False)
+    
+    progress(85, "Starting service")
     run(["systemctl", "start", SERVICE_NATIVE], check=False)
+    
+    progress(100, "Repair completed")
 

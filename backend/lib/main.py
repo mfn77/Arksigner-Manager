@@ -29,7 +29,6 @@ from .native_mode import (
 )
 from .download import download_deb
 from .firefox import firefox_add
-from .auto_version import find_latest_deb_url
 
 
 def main():
@@ -43,7 +42,7 @@ def main():
         choices=["install", "upgrade", "status", "repair", "uninstall", "purge"],
     )
 
-    ap.add_argument("--deb", default=DEFAULT_DEB_URL, help="deb URL or local path (use 'auto' to find latest)")
+    ap.add_argument("--deb", default=DEFAULT_DEB_URL, help="deb URL or local path")
     ap.add_argument("--suite", default=DEFAULT_SUITE, help="container: debootstrap suite")
     ap.add_argument("--mirror", default=DEFAULT_MIRROR, help="container: debootstrap mirror")
     ap.add_argument("--machine", default=DEFAULT_MACHINE, help="container: machine name")
@@ -55,6 +54,11 @@ def main():
         action="store_true",
         help="native: opt-in set RPATH to $ORIGIN/libs using patchelf",
     )
+    
+    # Repair-specific options
+    ap.add_argument("--force-terminate", action="store_true", help="repair: force terminate container")
+    ap.add_argument("--recreate-mounts", action="store_true", help="repair: recreate bind mounts from scratch")
+    ap.add_argument("--clear-cache", action="store_true", default=True, help="repair: clear systemd cache (default: true)")
 
     ap.add_argument("--user", default=os.environ.get("SUDO_USER", "") or os.environ.get("USER", "root"))
     ap.add_argument("--home", default=os.path.expanduser("~"))
@@ -75,10 +79,18 @@ def main():
     # REPAIR
     if args.action == "repair":
         if args.mode == "container":
-            repair_container(args.machine)
+            repair_container(
+                args.machine,
+                force_terminate=args.force_terminate,
+                recreate_mounts=args.recreate_mounts,
+                clear_cache=args.clear_cache,
+            )
             out = status("container", args.machine)
         else:
-            repair_native()
+            repair_native(
+                recreate_mounts=args.recreate_mounts,
+                clear_cache=args.clear_cache,
+            )
             out = status("native", args.machine)
         if args.firefox_add:
             out += "\n" + firefox_add(args.user, args.home)
@@ -96,17 +108,7 @@ def main():
         return
 
     # INSTALL / UPGRADE
-    # Handle auto version detection
-    deb_url = args.deb
-    if deb_url == "auto":
-        print(f"[{ts()}] Auto-detecting latest ArkSigner version...")
-        detected_url = find_latest_deb_url()
-        if not detected_url:
-            raise SystemExit("ERROR: Failed to auto-detect latest version. Please specify --deb manually.")
-        deb_url = detected_url
-        print(f"[{ts()}] Using: {deb_url}")
-
-    debp = download_deb(deb_url)
+    debp = download_deb(args.deb)
 
     extra = ""
     if args.mode == "container":
@@ -133,3 +135,4 @@ def main():
         out += "\n" + firefox_add(args.user, args.home)
 
     print(out, end="")
+

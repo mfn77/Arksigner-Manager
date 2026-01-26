@@ -21,8 +21,8 @@ class DiagnosticsSidebar(Gtk.Box):
         self._copy = copy_cb
         self._on_close = on_close_cb
 
-        # Styling
-        self.add_css_class("background")
+        # Styling - match left panel
+        self.add_css_class("navigation-sidebar")
 
         # Header with close button and title
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)

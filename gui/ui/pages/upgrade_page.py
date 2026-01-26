@@ -1,7 +1,10 @@
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw
+from gi.repository import Gtk, Adw, GLib
+import subprocess
+import re
+import threading
 
 
 class UpgradePage:
@@ -14,6 +17,7 @@ class UpgradePage:
         self.on_confirm = on_confirm
         self._busy = False
         self._current_mode = None  # Will be detected
+        self._auto_url = None
         self.widget = self._build()
 
     def _build(self) -> Gtk.Widget:
@@ -58,19 +62,26 @@ class UpgradePage:
         self.row_arksigner_deb.set_activatable_widget(self.sw_arksigner_deb)
         self.grp_container.add(self.row_arksigner_deb)
 
-        self.row_deb_url = Adw.EntryRow(
-            title=".deb URL (optional)",
-            text=""
-        )
-        # Add placeholder hint
-        # Note: Adw.EntryRow doesn't have set_placeholder_text, so we use title + subtitle
-        self.row_deb_url.set_title(".deb URL (optional)")
-        self.row_deb_url.set_show_apply_button(False)
+        # URL row with auto-detect button
+        url_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        url_box.set_margin_top(6)
+        url_box.set_margin_bottom(6)
+        url_box.set_margin_start(12)
+        url_box.set_margin_end(12)
+
+        self.row_deb_url = Adw.EntryRow(title=".deb URL (optional)")
+        self.row_deb_url.set_text("")
+        
+        btn_auto = Gtk.Button(label="Auto-detect Latest")
+        btn_auto.set_valign(Gtk.Align.CENTER)
+        btn_auto.connect("clicked", lambda *_: self._auto_detect_version("container"))
+        self.row_deb_url.add_suffix(btn_auto)
+        
         self.grp_container.add(self.row_deb_url)
 
         hint_container = Adw.ActionRow(
             title="",
-            subtitle="Leave empty to automatically find the latest version",
+            subtitle="Leave empty or click Auto-detect to find the latest version automatically",
         )
         hint_container.set_activatable(False)
         hint_container.add_css_class("dim-label")
@@ -83,16 +94,19 @@ class UpgradePage:
         )
         page.add(self.grp_native)
 
-        self.row_native_deb = Adw.EntryRow(
-            title=".deb URL (optional)",
-            text=""
-        )
-        self.row_native_deb.set_show_apply_button(False)
+        self.row_native_deb = Adw.EntryRow(title=".deb URL (optional)")
+        self.row_native_deb.set_text("")
+        
+        btn_auto_native = Gtk.Button(label="Auto-detect Latest")
+        btn_auto_native.set_valign(Gtk.Align.CENTER)
+        btn_auto_native.connect("clicked", lambda *_: self._auto_detect_version("native"))
+        self.row_native_deb.add_suffix(btn_auto_native)
+        
         self.grp_native.add(self.row_native_deb)
 
         hint_native = Adw.ActionRow(
             title="",
-            subtitle="Leave empty to automatically find the latest version",
+            subtitle="Leave empty or click Auto-detect to find the latest version automatically",
         )
         hint_native.set_activatable(False)
         hint_native.add_css_class("dim-label")
@@ -125,11 +139,96 @@ class UpgradePage:
 
         self.btn_upgrade = Gtk.Button(label="Upgrade")
         self.btn_upgrade.add_css_class("suggested-action")
-        self.btn_upgrade.connect("clicked", lambda *_: (None if self._busy else self.on_confirm(self.get_cfg())))
+        self.btn_upgrade.connect("clicked", lambda *_: (None if self._busy else self._start_upgrade()))
         bottom.append(self.btn_upgrade)
 
         outer.append(bottom)
         return outer
+
+    def _auto_detect_version(self, target_mode):
+        """Auto-detect latest version in background"""
+        if self._busy:
+            return
+
+        self._busy = True
+        self.btn_upgrade.set_sensitive(False)
+
+        def task():
+            try:
+                # Fetch directory listing
+                result = subprocess.run(
+                    ["curl", "-fsSL", "https://downloads.arksigner.com/files/"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode != 0:
+                    GLib.idle_add(self._auto_detect_failed, "Failed to fetch download page")
+                    return
+
+                # Find all .deb files
+                pattern = r'arksigner-pub-(\d+\.\d+\.\d+)\.deb'
+                matches = re.findall(pattern, result.stdout)
+
+                if not matches:
+                    GLib.idle_add(self._auto_detect_failed, "No .deb files found")
+                    return
+
+                # Parse versions
+                versions = []
+                for match in matches:
+                    try:
+                        parts = tuple(int(x) for x in match.split('.'))
+                        versions.append((parts, match))
+                    except ValueError:
+                        continue
+
+                if not versions:
+                    GLib.idle_add(self._auto_detect_failed, "No valid versions found")
+                    return
+
+                # Find highest
+                versions.sort(reverse=True)
+                highest = versions[0][1]
+                url = f"https://downloads.arksigner.com/files/arksigner-pub-{highest}.deb"
+
+                GLib.idle_add(self._auto_detect_success, url, highest, target_mode)
+
+            except Exception as e:
+                GLib.idle_add(self._auto_detect_failed, str(e))
+
+        threading.Thread(target=task, daemon=True).start()
+
+    def _auto_detect_success(self, url, version, target_mode):
+        self._auto_url = url
+        # Write to the correct input field based on which button was clicked
+        if target_mode == "container":
+            self.row_deb_url.set_text(url)
+        else:  # native
+            self.row_native_deb.set_text(url)
+        self._busy = False
+        self.btn_upgrade.set_sensitive(True)
+        return False
+
+    def _auto_detect_failed(self, error):
+        print(f"Auto-detect failed: {error}")
+        self._busy = False
+        self.btn_upgrade.set_sensitive(True)
+        return False
+
+    def _start_upgrade(self):
+        """Start upgrade with auto-detected URL if empty"""
+        cfg = self.get_cfg()
+        
+        # If URL is empty, try to auto-detect first
+        if not cfg.get("deb", "").strip():
+            if self._auto_url:
+                cfg["deb"] = self._auto_url
+            else:
+                # Use default fallback
+                cfg["deb"] = "https://downloads.arksigner.com/files/arksigner-pub-2.3.12.deb"
+        
+        self.on_confirm(cfg)
 
     def set_mode(self, mode: str):
         """Set current installation mode and adjust UI"""
@@ -154,18 +253,16 @@ class UpgradePage:
 
     def get_cfg(self) -> dict:
         if self._current_mode == "container":
-            deb_url = self.row_deb_url.get_text().strip()
             return {
                 "mode": "container",
                 "update_debian": self.sw_debian.get_active(),
                 "update_arksigner": self.sw_arksigner_deb.get_active(),
-                "deb": deb_url if deb_url else "auto",  # "auto" signals backend to find latest
+                "deb": self.row_deb_url.get_text().strip(),
             }
         elif self._current_mode == "native":
-            deb_url = self.row_native_deb.get_text().strip()
             return {
                 "mode": "native",
-                "deb": deb_url if deb_url else "auto",  # "auto" signals backend to find latest
+                "deb": self.row_native_deb.get_text().strip(),
                 "native_rpath": self.sw_rpath.get_active(),
             }
         else:
